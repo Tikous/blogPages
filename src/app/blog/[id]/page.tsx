@@ -1,5 +1,4 @@
 import { blogApi } from '@/lib/api'
-import { notFound } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
@@ -29,24 +28,35 @@ interface Post {
   }[]
 }
 
-// 生成静态参数
+// 生成静态参数 - 包含更大范围的 ID
 export async function generateStaticParams() {
   try {
     const posts = await blogApi.getPosts()
-    return posts.map((post) => ({
+    const existingIds = posts.map((post) => ({
       id: post.id.toString(),
     }))
+    
+    // 添加额外的 ID 范围以支持新创建的博客
+    const additionalIds = []
+    for (let i = 1; i <= 300; i++) {
+      additionalIds.push({ id: i.toString() })
+    }
+    
+    // 合并并去重
+    const allIds = [...existingIds, ...additionalIds]
+    const uniqueIds = allIds.filter((item, index, arr) => 
+      arr.findIndex(t => t.id === item.id) === index
+    )
+    
+    return uniqueIds
   } catch (error) {
     console.error('生成静态参数失败:', error)
-    // 返回一些默认的 ID 以防 API 不可用
-    return [
-      { id: '1' },
-      { id: '2' },
-      { id: '3' },
-      { id: '4' },
-      { id: '5' },
-      { id: '6' },
-    ]
+    // 如果 API 失败，返回大范围的 ID
+    const staticIds = []
+    for (let i = 1; i <= 300; i++) {
+      staticIds.push({ id: i.toString() })
+    }
+    return staticIds
   }
 }
 
@@ -60,11 +70,38 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
     post = await blogApi.getPost(id)
   } catch (error) {
     console.error('获取博客详情失败:', error)
-    notFound()
+    // 不直接调用 notFound()，而是显示错误页面
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-center items-center py-16">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-gray-600 mb-4">
+              博客不存在或加载失败
+            </h2>
+            <Link href="/" className="text-blue-600 hover:text-blue-800">
+              返回首页
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!post) {
-    notFound()
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-center items-center py-16">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-gray-600 mb-4">
+              博客不存在
+            </h2>
+            <Link href="/" className="text-blue-600 hover:text-blue-800">
+              返回首页
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -132,19 +169,23 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
         <article className="prose prose-lg max-w-none">
           <ReactMarkdown
             components={{
-              code({ inline, className, children, ...props }: any) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              code: ({ inline, className, children }: any) => {
                 const match = /language-(\w+)/.exec(className || '')
-                return !inline && match ? (
-                  <SyntaxHighlighter
-                    style={tomorrow as any}
-                    language={match[1]}
-                    PreTag="div"
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800" {...props}>
+                if (!inline && match) {
+                  return (
+                    <SyntaxHighlighter
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      style={tomorrow as any}
+                      language={match[1]}
+                      PreTag="div"
+                    >
+                      {String(children).replace(/\n$/, '')}
+                    </SyntaxHighlighter>
+                  )
+                }
+                return (
+                  <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">
                     {children}
                   </code>
                 )

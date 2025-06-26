@@ -184,19 +184,23 @@ export default function WriteBlog() {
               <div className="prose max-w-none">
                 <ReactMarkdown
                   components={{
-                    code({ inline, className, children, ...props }: any) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    code: ({ inline, className, children }: any) => {
                       const match = /language-(\w+)/.exec(className || '')
-                      return !inline && match ? (
-                        <SyntaxHighlighter
-                          style={tomorrow as any}
-                          language={match[1]}
-                          PreTag="div"
-                          {...props}
-                        >
-                          {String(children).replace(/\n$/, '')}
-                        </SyntaxHighlighter>
-                      ) : (
-                        <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800" {...props}>
+                      if (!inline && match) {
+                        return (
+                          <SyntaxHighlighter
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            style={tomorrow as any}
+                            language={match[1]}
+                            PreTag="div"
+                          >
+                            {String(children).replace(/\n$/, '')}
+                          </SyntaxHighlighter>
+                        )
+                      }
+                      return (
+                        <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">
                           {children}
                         </code>
                       )
