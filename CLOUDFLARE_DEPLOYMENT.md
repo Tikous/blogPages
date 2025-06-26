@@ -1,60 +1,130 @@
 # Cloudflare Pages 部署指南
 
-## 📋 部署步骤
+本项目可以部署到 Cloudflare Pages，利用其全球 CDN 网络提供快速的静态网站托管。
 
-### 1. 准备工作
-- ✅ 代码已推送到 GitHub: https://github.com/Tikous/blogPages
-- ✅ 项目已配置为静态导出 (`output: 'export'`)
-- ✅ 已创建 `wrangler.toml` 配置文件
+## 前置要求
 
-### 2. 在 Cloudflare Pages 创建项目
+1. Cloudflare 账户
+2. GitHub 仓库（推荐）或本地项目
+3. Node.js 18+ 环境
 
-1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. 选择 "Pages" 服务
+## 方法一：通过 Cloudflare 控制台部署（推荐）
+
+### 1. 连接 GitHub 仓库
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. 进入 "Pages" 部分
 3. 点击 "Create a project"
 4. 选择 "Connect to Git"
-5. 连接您的 GitHub 账户
-6. 选择 `Tikous/blogPages` 仓库
+5. 授权 Cloudflare 访问你的 GitHub 仓库
+6. 选择 `blog-of-pages` 仓库
 
-### 3. 构建配置
+### 2. 配置构建设置
 
-在 Cloudflare Pages 设置页面配置以下参数：
+在项目设置页面配置以下构建参数：
 
-```
-Framework preset: Next.js
-Build command: npx @cloudflare/next-on-pages@1
-Build output directory: .vercel/output/static
-Root directory: (留空)
-```
+- **Framework preset**: Next.js (Static HTML Export)
+- **Build command**: `npx @cloudflare/next-on-pages@1`
+- **Build output directory**: `.vercel/output/static`
+- **Root directory**: `/` (项目根目录)
 
-**重要提示**: 如果您在界面上看到的是 `out` 目录错误，请确保：
-1. 构建命令是 `npx @cloudflare/next-on-pages@1`
-2. 构建输出目录是 `.vercel/output/static`
-3. 选择 "Next.js" 框架预设（不是 Static HTML Export）
+### 3. 环境变量设置
 
-### 4. 环境变量和兼容性设置
+在 "Environment variables" 部分添加：
 
-在 Cloudflare Pages 的设置中配置：
-
-**环境变量**：
 ```
 NODE_VERSION = 18
-NEXT_PUBLIC_API_BASE_URL = https://qtnbpuw8jc.execute-api.ap-southeast-2.amazonaws.com/Prod
 ```
 
-**兼容性标志**：
-在 Cloudflare Pages 项目设置的 "Functions" → "Compatibility flags" 中添加：
+### 4. 部署
+
+1. 点击 "Save and Deploy"
+2. Cloudflare 将自动从 GitHub 拉取代码并构建
+3. 构建完成后，你的网站将在 `https://your-project-name.pages.dev` 可用
+
+## 方法二：使用 Wrangler CLI 部署
+
+### 1. 安装 Wrangler
+
+```bash
+npm install -g wrangler
 ```
-nodejs_compat
+
+### 2. 登录 Cloudflare
+
+```bash
+wrangler login
 ```
 
-这个标志是必需的，用于支持 Node.js 兼容性功能。
+### 3. 构建项目
 
-### 5. 部署
+```bash
+npm run build
+npx @cloudflare/next-on-pages@1
+```
 
-- 点击 "Save and Deploy"
-- Cloudflare 会自动从 GitHub 拉取代码并构建
-- 构建完成后，您的博客将可通过 Cloudflare 提供的域名访问
+### 4. 部署到 Pages
+
+```bash
+wrangler pages deploy .vercel/output/static --project-name blog-pages
+```
+
+## 配置文件说明
+
+### wrangler.toml
+
+项目根目录的 `wrangler.toml` 文件包含基本配置：
+
+```toml
+name = "blog-pages"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = ".vercel/output/static"
+compatibility_flags = ["nodejs_compat"]
+```
+
+**注意**: Pages 项目的构建配置（build command、环境变量等）应该在 Cloudflare 控制台中设置，而不是在 wrangler.toml 文件中。
+
+## 自动部署
+
+一旦通过 GitHub 连接设置了项目，每次推送到主分支时，Cloudflare Pages 都会自动触发新的部署。
+
+## 自定义域名
+
+1. 在 Cloudflare Pages 项目设置中
+2. 进入 "Custom domains" 部分
+3. 添加你的域名
+4. 按照指示更新 DNS 记录
+
+## 故障排除
+
+### 构建失败
+- 检查 Node.js 版本是否设置为 18+
+- 确认构建命令正确：`npx @cloudflare/next-on-pages@1`
+- 检查输出目录：`.vercel/output/static`
+
+### 部署后页面空白
+- 确认 Next.js 配置为静态导出模式
+- 检查 `next.config.ts` 中的 `output: 'export'` 设置
+
+### API 路由问题
+- Cloudflare Pages 不支持 Next.js API 路由
+- 确保所有 API 调用指向外部服务（如 AWS Lambda）
+
+## 性能优化
+
+Cloudflare Pages 自动提供：
+- 全球 CDN 缓存
+- 自动 HTTPS
+- HTTP/2 和 HTTP/3 支持
+- 图片优化（通过 Cloudflare Images）
+
+## 监控和分析
+
+在 Cloudflare Dashboard 中可以查看：
+- 部署历史
+- 访问统计
+- 性能指标
+- 错误日志
 
 ## 🔧 技术配置
 
