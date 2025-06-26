@@ -19,8 +19,12 @@ export default function DeleteButton({ postId }: DeleteButtonProps) {
     try {
       const success = await blogApi.deletePost(postId)
       if (success) {
-        // 删除成功，返回首页
+        // 删除成功，返回首页并强制刷新
         router.push('/')
+        // 强制刷新页面以确保数据更新
+        setTimeout(() => {
+          window.location.reload()
+        }, 100)
       } else {
         alert('删除失败，请重试')
       }

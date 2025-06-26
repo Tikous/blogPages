@@ -33,7 +33,12 @@ export default function WriteBlog() {
       })
 
       if (post) {
+        // 发布成功，跳转到博客详情页
         router.push(`/blog/${post.id}`)
+        // 延迟刷新以确保数据同步
+        setTimeout(() => {
+          window.location.href = `/blog/${post.id}`
+        }, 200)
       }
     } catch (error) {
       console.error('发布博客失败:', error)

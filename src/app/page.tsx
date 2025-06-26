@@ -1,21 +1,85 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { blogApi } from '@/lib/api'
 import BlogCard from '@/components/BlogCard'
 import Link from 'next/link'
 import { PlusCircle } from 'lucide-react'
 
-async function getPosts() {
-  try {
-    const posts = await blogApi.getPosts()
-    // 只显示已发布的文章
-    return posts.filter(post => post.published)
-  } catch (error) {
-    console.error('获取博客列表失败:', error)
-    return []
-  }
+interface Post {
+  id: number
+  title: string
+  content: string
+  summary?: string | null
+  published: boolean
+  createdAt: string
+  updatedAt: string
+  author?: {
+    id: number
+    name?: string | null
+    email: string
+  } | null
+  tags: {
+    id: number
+    name: string
+  }[]
 }
 
-export default async function Home() {
-  const posts = await getPosts()
+export default function Home() {
+  const [posts, setPosts] = useState<Post[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchPosts = async () => {
+    try {
+      setLoading(true)
+      const allPosts = await blogApi.getPosts()
+      // 只显示已发布的文章
+      const publishedPosts = allPosts.filter(post => post.published)
+      setPosts(publishedPosts)
+      setError(null)
+    } catch (err) {
+      console.error('获取博客列表失败:', err)
+      setError('加载博客列表失败')
+      setPosts([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchPosts()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-center items-center py-16">
+          <div className="text-lg text-gray-600">加载中...</div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-center items-center py-16">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-gray-600 mb-4">
+              {error}
+            </h2>
+            <button 
+              onClick={fetchPosts}
+              className="btn-primary"
+            >
+              重试
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="max-w-6xl mx-auto">
