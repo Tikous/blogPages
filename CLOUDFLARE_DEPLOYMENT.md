@@ -27,6 +27,11 @@ Build output directory: .vercel/output/static
 Root directory: (留空)
 ```
 
+**重要提示**: 如果您在界面上看到的是 `out` 目录错误，请确保：
+1. 构建命令是 `npx @cloudflare/next-on-pages@1`
+2. 构建输出目录是 `.vercel/output/static`
+3. 选择 "Next.js" 框架预设（不是 Static HTML Export）
+
 ### 4. 环境变量设置
 
 在 Cloudflare Pages 的环境变量中设置：
