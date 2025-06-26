@@ -1,14 +1,14 @@
 import { blogApi } from '@/lib/api'
 import { notFound } from 'next/navigation'
-import { SafeMdxRenderer } from 'safe-mdx'
+import ReactMarkdown from 'react-markdown'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, User, Tag } from 'lucide-react'
 import DeleteButton from './DeleteButton'
 import React from 'react'
-
-export const runtime = 'edge'
 
 interface Post {
   id: number
@@ -27,6 +27,27 @@ interface Post {
     id: number
     name: string
   }[]
+}
+
+// 生成静态参数
+export async function generateStaticParams() {
+  try {
+    const posts = await blogApi.getPosts()
+    return posts.map((post) => ({
+      id: post.id.toString(),
+    }))
+  } catch (error) {
+    console.error('生成静态参数失败:', error)
+    // 返回一些默认的 ID 以防 API 不可用
+    return [
+      { id: '1' },
+      { id: '2' },
+      { id: '3' },
+      { id: '4' },
+      { id: '5' },
+      { id: '6' },
+    ]
+  }
 }
 
 export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
@@ -109,57 +130,52 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
 
         {/* 博客内容 */}
         <article className="prose prose-lg max-w-none">
-          <SafeMdxRenderer
-            code={post.content}
+          <ReactMarkdown
             components={{
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              p: ({ children }: any) => (
+              code({ inline, className, children, ...props }: any) {
+                const match = /language-(\w+)/.exec(className || '')
+                return !inline && match ? (
+                  <SyntaxHighlighter
+                    style={tomorrow as any}
+                    language={match[1]}
+                    PreTag="div"
+                    {...props}
+                  >
+                    {String(children).replace(/\n$/, '')}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800" {...props}>
+                    {children}
+                  </code>
+                )
+              },
+              p: ({ children }) => (
                 <p className="text-gray-800 leading-relaxed mb-4">{children}</p>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              h1: ({ children }: any) => (
+              h1: ({ children }) => (
                 <h1 className="text-3xl font-bold text-gray-900 mt-8 mb-4">{children}</h1>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              h2: ({ children }: any) => (
+              h2: ({ children }) => (
                 <h2 className="text-2xl font-bold text-gray-900 mt-6 mb-3">{children}</h2>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              h3: ({ children }: any) => (
+              h3: ({ children }) => (
                 <h3 className="text-xl font-bold text-gray-900 mt-4 mb-2">{children}</h3>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              code: ({ children }: any) => (
-                <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">
-                  {children}
-                </code>
-              ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              pre: ({ children }: any) => (
-                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4">
-                  {children}
-                </pre>
-              ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              blockquote: ({ children }: any) => (
+              blockquote: ({ children }) => (
                 <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 my-4">
                   {children}
                 </blockquote>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ul: ({ children }: any) => (
+              ul: ({ children }) => (
                 <ul className="list-disc list-inside space-y-2 my-4">{children}</ul>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              ol: ({ children }: any) => (
+              ol: ({ children }) => (
                 <ol className="list-decimal list-inside space-y-2 my-4">{children}</ol>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              li: ({ children }: any) => (
+              li: ({ children }) => (
                 <li className="text-gray-800">{children}</li>
               ),
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              a: ({ href, children }: any) => (
+              a: ({ href, children }) => (
                 <a 
                   href={href} 
                   className="text-blue-600 hover:text-blue-800 underline"
@@ -170,7 +186,9 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
                 </a>
               ),
             }}
-          />
+          >
+            {post.content}
+          </ReactMarkdown>
         </article>
 
         {/* 底部信息 */}

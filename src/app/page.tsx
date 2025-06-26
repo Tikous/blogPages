@@ -3,11 +3,6 @@ import BlogCard from '@/components/BlogCard'
 import Link from 'next/link'
 import { PlusCircle } from 'lucide-react'
 
-// 禁用页面缓存
-export const dynamic = 'force-dynamic'
-export const revalidate = 0
-export const runtime = 'edge'
-
 async function getPosts() {
   try {
     const posts = await blogApi.getPosts()
