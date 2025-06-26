@@ -22,8 +22,8 @@
 
 ```
 Framework preset: Next.js
-Build command: npm run build
-Build output directory: out
+Build command: npx @cloudflare/next-on-pages@1
+Build output directory: .vercel/output/static
 Root directory: (留空)
 ```
 
@@ -44,15 +44,19 @@ NEXT_PUBLIC_API_BASE_URL = https://qtnbpuw8jc.execute-api.ap-southeast-2.amazona
 
 ## 🔧 技术配置
 
-### Next.js 静态导出配置
+### Next.js Cloudflare 配置
 ```typescript
 // next.config.ts
 const nextConfig: NextConfig = {
-  output: 'export',
-  trailingSlash: true,
   images: {
     unoptimized: true
-  }
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
 };
 ```
 

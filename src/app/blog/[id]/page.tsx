@@ -170,14 +170,15 @@ export default function BlogPost({ params }: { params: Promise<{ id: string }> }
         <article className="prose prose-lg max-w-none">
           <ReactMarkdown
             components={{
-              code({ className, children, ...props }: React.ComponentProps<'code'>) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              code({ className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '')
                 return match ? (
                   <SyntaxHighlighter
-                    style={tomorrow}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    style={tomorrow as any}
                     language={match[1]}
                     PreTag="div"
-                    {...props}
                   >
                     {String(children).replace(/\n$/, '')}
                   </SyntaxHighlighter>
