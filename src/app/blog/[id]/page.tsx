@@ -28,7 +28,7 @@ interface Post {
   }[]
 }
 
-// 生成静态参数 - 包含更大范围的 ID
+// 生成静态参数 - 为真实博客 + 合理的新博客范围生成页面
 export async function generateStaticParams() {
   try {
     const posts = await blogApi.getPosts()
@@ -36,27 +36,27 @@ export async function generateStaticParams() {
       id: post.id.toString(),
     }))
     
-    // 添加额外的 ID 范围以支持新创建的博客
-    const additionalIds = []
-    for (let i = 1; i <= 300; i++) {
-      additionalIds.push({ id: i.toString() })
+    // 找到最大的现有 ID，并预留一些空间给新博客
+    const maxExistingId = posts.length > 0 ? Math.max(...posts.map(p => p.id)) : 0
+    const maxPregenId = maxExistingId + 100 // 预留100个新博客的空间
+    
+    // 为可能的新博客ID预生成页面
+    const potentialNewIds = []
+    for (let i = maxExistingId + 1; i <= maxPregenId; i++) {
+      potentialNewIds.push({ id: i.toString() })
     }
     
-    // 合并并去重
-    const allIds = [...existingIds, ...additionalIds]
-    const uniqueIds = allIds.filter((item, index, arr) => 
-      arr.findIndex(t => t.id === item.id) === index
-    )
-    
-    return uniqueIds
+    const allIds = [...existingIds, ...potentialNewIds]
+    console.log(`预生成 ${allIds.length} 个博客页面 (${existingIds.length} 个现有 + ${potentialNewIds.length} 个预留)`)
+    return allIds
   } catch (error) {
     console.error('生成静态参数失败:', error)
-    // 如果 API 失败，返回大范围的 ID
-    const staticIds = []
-    for (let i = 1; i <= 300; i++) {
-      staticIds.push({ id: i.toString() })
+    // 如果 API 失败，预生成一个合理范围的 ID
+    const fallbackIds = []
+    for (let i = 1; i <= 200; i++) {
+      fallbackIds.push({ id: i.toString() })
     }
-    return staticIds
+    return fallbackIds
   }
 }
 
@@ -65,37 +65,31 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
   const id = resolvedParams.id
   
   let post: Post | null = null
+  let error: string | null = null
   
   try {
     post = await blogApi.getPost(id)
-  } catch (error) {
-    console.error('获取博客详情失败:', error)
-    // 不直接调用 notFound()，而是显示错误页面
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-center items-center py-16">
-          <div className="text-center">
-            <h2 className="text-2xl font-semibold text-gray-600 mb-4">
-              博客不存在或加载失败
-            </h2>
-            <Link href="/" className="text-blue-600 hover:text-blue-800">
-              返回首页
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
+  } catch (err) {
+    console.error('获取博客详情失败:', err)
+    error = '博客不存在或加载失败'
   }
 
-  if (!post) {
+  if (error || !post) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-center items-center py-16">
           <div className="text-center">
             <h2 className="text-2xl font-semibold text-gray-600 mb-4">
-              博客不存在
+              {error || '博客不存在'}
             </h2>
-            <Link href="/" className="text-blue-600 hover:text-blue-800">
+            <p className="text-gray-500 mb-6">
+              可能是博客已被删除，或者您访问的链接有误。
+            </p>
+            <Link 
+              href="/" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              <ArrowLeft size={16} />
               返回首页
             </Link>
           </div>
@@ -202,21 +196,30 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
               h3: ({ children }) => (
                 <h3 className="text-xl font-bold text-gray-900 mt-4 mb-2">{children}</h3>
               ),
+              h4: ({ children }) => (
+                <h4 className="text-lg font-bold text-gray-900 mt-3 mb-2">{children}</h4>
+              ),
+              h5: ({ children }) => (
+                <h5 className="text-base font-bold text-gray-900 mt-2 mb-1">{children}</h5>
+              ),
+              h6: ({ children }) => (
+                <h6 className="text-sm font-bold text-gray-900 mt-2 mb-1">{children}</h6>
+              ),
+              ul: ({ children }) => (
+                <ul className="list-disc list-inside mb-4 text-gray-800">{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-inside mb-4 text-gray-800">{children}</ol>
+              ),
+              li: ({ children }) => (
+                <li className="mb-1">{children}</li>
+              ),
               blockquote: ({ children }) => (
-                <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 my-4">
+                <blockquote className="border-l-4 border-blue-500 pl-4 py-2 mb-4 bg-blue-50 text-gray-700 italic">
                   {children}
                 </blockquote>
               ),
-              ul: ({ children }) => (
-                <ul className="list-disc list-inside space-y-2 my-4">{children}</ul>
-              ),
-              ol: ({ children }) => (
-                <ol className="list-decimal list-inside space-y-2 my-4">{children}</ol>
-              ),
-              li: ({ children }) => (
-                <li className="text-gray-800">{children}</li>
-              ),
-              a: ({ href, children }) => (
+              a: ({ children, href }) => (
                 <a 
                   href={href} 
                   className="text-blue-600 hover:text-blue-800 underline"
@@ -225,6 +228,42 @@ export default async function BlogPost({ params }: { params: Promise<{ id: strin
                 >
                   {children}
                 </a>
+              ),
+              table: ({ children }) => (
+                <div className="overflow-x-auto mb-4">
+                  <table className="min-w-full border border-gray-300">
+                    {children}
+                  </table>
+                </div>
+              ),
+              thead: ({ children }) => (
+                <thead className="bg-gray-100">{children}</thead>
+              ),
+              tbody: ({ children }) => (
+                <tbody>{children}</tbody>
+              ),
+              tr: ({ children }) => (
+                <tr className="border-b border-gray-200">{children}</tr>
+              ),
+              th: ({ children }) => (
+                <th className="px-4 py-2 text-left font-semibold text-gray-900 border-r border-gray-300 last:border-r-0">
+                  {children}
+                </th>
+              ),
+              td: ({ children }) => (
+                <td className="px-4 py-2 text-gray-800 border-r border-gray-300 last:border-r-0">
+                  {children}
+                </td>
+              ),
+              hr: () => (
+                <hr className="my-8 border-t border-gray-300" />
+              ),
+              img: ({ src, alt }) => (
+                <img 
+                  src={src} 
+                  alt={alt} 
+                  className="max-w-full h-auto rounded-lg shadow-md my-4"
+                />
               ),
             }}
           >
