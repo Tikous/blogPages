@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { Calendar, User, Tag } from 'lucide-react'
+import { Calendar, User } from 'lucide-react'
 import { Post } from '@/lib/api'
 
 interface BlogCardProps {

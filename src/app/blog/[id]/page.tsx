@@ -10,6 +10,7 @@ import { zhCN } from 'date-fns/locale'
 import Link from 'next/link'
 import { ArrowLeft, Calendar, User, Tag, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import React from 'react'
 
 interface Post {
   id: number
@@ -169,11 +170,11 @@ export default function BlogPost({ params }: { params: Promise<{ id: string }> }
         <article className="prose prose-lg max-w-none">
           <ReactMarkdown
             components={{
-              code({ className, children, ...props }: any) {
+              code({ className, children, ...props }: React.ComponentProps<'code'>) {
                 const match = /language-(\w+)/.exec(className || '')
                 return match ? (
                   <SyntaxHighlighter
-                    style={tomorrow as any}
+                    style={tomorrow}
                     language={match[1]}
                     PreTag="div"
                     {...props}
@@ -208,7 +209,7 @@ export default function BlogPost({ params }: { params: Promise<{ id: string }> }
               确认删除文章
             </h3>
             <p className="text-gray-600 mb-6">
-              您确定要删除文章 "<strong>{post.title}</strong>" 吗？此操作无法撤销。
+              您确定要删除文章 &ldquo;<strong>{post.title}</strong>&rdquo; 吗？此操作无法撤销。
             </p>
             <div className="flex gap-3 justify-end">
               <button
