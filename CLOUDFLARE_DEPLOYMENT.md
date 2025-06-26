@@ -32,14 +32,23 @@ Root directory: (留空)
 2. 构建输出目录是 `.vercel/output/static`
 3. 选择 "Next.js" 框架预设（不是 Static HTML Export）
 
-### 4. 环境变量设置
+### 4. 环境变量和兼容性设置
 
-在 Cloudflare Pages 的环境变量中设置：
+在 Cloudflare Pages 的设置中配置：
 
+**环境变量**：
 ```
 NODE_VERSION = 18
 NEXT_PUBLIC_API_BASE_URL = https://qtnbpuw8jc.execute-api.ap-southeast-2.amazonaws.com/Prod
 ```
+
+**兼容性标志**：
+在 Cloudflare Pages 项目设置的 "Functions" → "Compatibility flags" 中添加：
+```
+nodejs_compat
+```
+
+这个标志是必需的，用于支持 Node.js 兼容性功能。
 
 ### 5. 部署
 
@@ -107,8 +116,36 @@ API 基础地址：`https://qtnbpuw8jc.execute-api.ap-southeast-2.amazonaws.com/
 4. ✅ 删除功能正常工作
 5. ✅ 响应式设计在移动端正常
 
+## 🔧 故障排除
+
+### Node.js Compatibility Error
+
+如果您看到 "Node.JS Compatibility Error" 错误页面，请确保：
+
+1. ✅ **兼容性标志已设置**：
+   - 进入 Cloudflare Pages 项目设置
+   - 找到 "Functions" → "Compatibility flags"
+   - 添加 `nodejs_compat` 标志
+   - 重新部署项目
+
+2. ✅ **wrangler.toml 配置正确**：
+   ```toml
+   compatibility_flags = ["nodejs_compat"]
+   ```
+
+3. ✅ **重新部署**：
+   - 设置兼容性标志后，触发重新部署
+   - 可以通过推送新代码或手动重新部署
+
+### 其他常见问题
+
+- **构建失败**：检查构建命令是否为 `npx @cloudflare/next-on-pages@1`
+- **API 调用失败**：确认环境变量 `NEXT_PUBLIC_API_BASE_URL` 已正确设置
+- **页面加载慢**：Edge Runtime 首次冷启动可能需要几秒钟
+
 ## 🔗 相关链接
 
 - GitHub 仓库: https://github.com/Tikous/blogPages
 - AWS API 文档: 见项目 README.md
-- Next.js 静态导出文档: https://nextjs.org/docs/pages/building-your-application/deploying/static-exports 
+- Cloudflare Pages 文档: https://developers.cloudflare.com/pages/
+- Next.js on Cloudflare: https://developers.cloudflare.com/pages/framework-guides/nextjs/ 
