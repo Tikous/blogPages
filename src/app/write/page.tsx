@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, Eye } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import { SafeMdxRenderer } from 'safe-mdx'
 import { blogApi } from '@/lib/api'
 
 export default function WriteBlog() {
@@ -180,7 +180,7 @@ export default function WriteBlog() {
             
             {content && (
               <div className="prose max-w-none">
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <SafeMdxRenderer code={content} />
               </div>
             )}
             

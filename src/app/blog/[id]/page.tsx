@@ -1,16 +1,14 @@
-'use client'
-
 import { blogApi } from '@/lib/api'
-import { notFound, useRouter } from 'next/navigation'
-import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { notFound } from 'next/navigation'
+import { SafeMdxRenderer } from 'safe-mdx'
 import { format } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, User, Tag, Trash2 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { ArrowLeft, Calendar, User, Tag } from 'lucide-react'
+import DeleteButton from './DeleteButton'
 import React from 'react'
+
+export const runtime = 'edge'
 
 interface Post {
   id: number
@@ -31,67 +29,17 @@ interface Post {
   }[]
 }
 
-export default function BlogPost({ params }: { params: Promise<{ id: string }> }) {
-  const router = useRouter()
-  const [post, setPost] = useState<Post | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [deleting, setDeleting] = useState(false)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [postId, setPostId] = useState<string | null>(null)
-
-  useEffect(() => {
-    async function fetchPost() {
-      try {
-        const resolvedParams = await params
-        const id = resolvedParams.id
-        setPostId(id)
-        
-        const postData = await blogApi.getPost(id)
-        if (!postData) {
-          notFound()
-        }
-        setPost(postData)
-      } catch (error) {
-        console.error('获取博客详情失败:', error)
-        notFound()
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchPost()
-  }, [params])
-
-  const handleDelete = async () => {
-    if (!post || !postId) return
-    
-    setDeleting(true)
-    try {
-      const success = await blogApi.deletePost(postId.toString())
-      if (success) {
-        // 删除成功，返回首页
-        router.push('/')
-      } else {
-        alert('删除失败，请重试')
-      }
-    } catch (error) {
-      console.error('删除博客失败:', error)
-      alert('删除失败，请重试')
-    } finally {
-      setDeleting(false)
-      setShowDeleteConfirm(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">加载中...</p>
-        </div>
-      </div>
-    )
+export default async function BlogPost({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  const id = resolvedParams.id
+  
+  let post: Post | null = null
+  
+  try {
+    post = await blogApi.getPost(id)
+  } catch (error) {
+    console.error('获取博客详情失败:', error)
+    notFound()
   }
 
   if (!post) {
@@ -111,14 +59,7 @@ export default function BlogPost({ params }: { params: Promise<{ id: string }> }
             返回博客列表
           </Link>
 
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
-            disabled={deleting}
-          >
-            <Trash2 size={16} />
-            删除文章
-          </button>
+          <DeleteButton postId={id} />
         </div>
 
         {/* 博客头部信息 */}
@@ -168,30 +109,68 @@ export default function BlogPost({ params }: { params: Promise<{ id: string }> }
 
         {/* 博客内容 */}
         <article className="prose prose-lg max-w-none">
-          <ReactMarkdown
+          <SafeMdxRenderer
+            code={post.content}
             components={{
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              code({ className, children, ...props }: any) {
-                const match = /language-(\w+)/.exec(className || '')
-                return match ? (
-                  <SyntaxHighlighter
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    style={tomorrow as any}
-                    language={match[1]}
-                    PreTag="div"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                )
-              },
+              p: ({ children }: any) => (
+                <p className="text-gray-800 leading-relaxed mb-4">{children}</p>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              h1: ({ children }: any) => (
+                <h1 className="text-3xl font-bold text-gray-900 mt-8 mb-4">{children}</h1>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              h2: ({ children }: any) => (
+                <h2 className="text-2xl font-bold text-gray-900 mt-6 mb-3">{children}</h2>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              h3: ({ children }: any) => (
+                <h3 className="text-xl font-bold text-gray-900 mt-4 mb-2">{children}</h3>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              code: ({ children }: any) => (
+                <code className="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono text-gray-800">
+                  {children}
+                </code>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              pre: ({ children }: any) => (
+                <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto my-4">
+                  {children}
+                </pre>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              blockquote: ({ children }: any) => (
+                <blockquote className="border-l-4 border-blue-500 pl-4 italic text-gray-700 my-4">
+                  {children}
+                </blockquote>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ul: ({ children }: any) => (
+                <ul className="list-disc list-inside space-y-2 my-4">{children}</ul>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              ol: ({ children }: any) => (
+                <ol className="list-decimal list-inside space-y-2 my-4">{children}</ol>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              li: ({ children }: any) => (
+                <li className="text-gray-800">{children}</li>
+              ),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              a: ({ href, children }: any) => (
+                <a 
+                  href={href} 
+                  className="text-blue-600 hover:text-blue-800 underline"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {children}
+                </a>
+              ),
             }}
-          >
-            {post.content}
-          </ReactMarkdown>
+          />
         </article>
 
         {/* 底部信息 */}
@@ -201,39 +180,6 @@ export default function BlogPost({ params }: { params: Promise<{ id: string }> }
           </div>
         </footer>
       </div>
-
-      {/* 删除确认对话框 */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
-              确认删除文章
-            </h3>
-            <p className="text-gray-600 mb-6">
-              您确定要删除文章 &ldquo;<strong>{post.title}</strong>&rdquo; 吗？此操作无法撤销。
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                disabled={deleting}
-              >
-                取消
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
-                disabled={deleting}
-              >
-                {deleting && (
-                  <div className="inline-block animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                )}
-                {deleting ? '删除中...' : '确认删除'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 } 
